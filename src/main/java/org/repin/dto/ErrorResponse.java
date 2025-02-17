@@ -6,7 +6,5 @@ public class ErrorResponse extends Throwable {
         this.error = error;
     }
 
-    public String getError(){
-        return this.error;
-    }
+
 }

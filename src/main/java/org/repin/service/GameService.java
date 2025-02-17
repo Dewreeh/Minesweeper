@@ -138,7 +138,6 @@ public class GameService {
         int height = game.getHeight();
 
         String[][] userField = game.getField();
-        Boolean[][] minesField = game.getMinesField();
 
         //проверка на границы поля
         if (row < 0 || row >= height || col < 0 || col >= width || visited[row][col]) {
