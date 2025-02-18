@@ -101,7 +101,11 @@ public class GameService {
         // Попали на мину
         if (minesField[row][col]) {
             game.setCompleted(true);
-            game.setField(openCells(game)); // Открываем все ячейки
+            game.setField(openCells(game, "X")); // Открываем все ячейки с символом X (т.к. игрок проигал)
+
+            redisTemplate.opsForValue().set(game.getGameId().toString(), game);
+            return game;
+
         } else {
             int countMinesAround = getCountMinesAround(game, row, col);
 
@@ -113,24 +117,34 @@ public class GameService {
             }
         }
 
+        //проверка на выигрыш
+        if (isGameCompleted(game)) {
+            game.setCompleted(true);
+            game.setField(openCells(game, "M")); //открываем клетки с символом M
+        }
+
+
         redisTemplate.opsForValue().set(game.getGameId().toString(), game);
         return game;
     }
 
-    private String[][] openCells(Game game){
+    private String[][] openCells(Game game, String mineSymbol) {
         Boolean[][] minesField = game.getMinesField();
         String[][] userField = game.getField();
 
-        for(int i = 0; i < game.getHeight(); i++){
-            for(int j = 0; j < game.getWidth(); j++){
-                if(minesField[i][j]) userField[i][j] = "X";
-                if(userField[i][j].equals(" ") || userField[i][j].equals("0")) userField[i][j] = String.valueOf(getCountMinesAround(game,i, j));
+        for (int i = 0; i < game.getHeight(); i++) {
+            for (int j = 0; j < game.getWidth(); j++) {
+                if (minesField[i][j]) {
+                    userField[i][j] = mineSymbol;
+                } else {
+                    userField[i][j] = String.valueOf(getCountMinesAround(game, i, j));
+                }
             }
         }
         game.setField(userField);
-
         return userField;
     }
+
 
     //открываем клетки рекурсивно поиском в глубину
     String[][] openEmptyCells(Game game, int row, int col, boolean[][] visited){
@@ -198,6 +212,22 @@ public class GameService {
 
         return count;
     }
+
+    private boolean isGameCompleted(Game game) {
+        Boolean[][] minesField = game.getMinesField();
+        String[][] userField = game.getField();
+
+        for (int i = 0; i < game.getHeight(); i++) {
+            for (int j = 0; j < game.getWidth(); j++) {
+                // Если это безопасная ячейка и она всё ещё закрыта (равна " ")
+                if (!minesField[i][j] && userField[i][j].equals(" ")) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 
     public Game getGameById(UUID gameId) throws ErrorResponse {
         Game game = redisTemplate.opsForValue().get(gameId.toString());
